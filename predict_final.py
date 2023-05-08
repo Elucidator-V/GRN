@@ -15,7 +15,7 @@ from transformers import CLIPProcessor
 processor = ViltProcessor.from_pretrained("dandelin/vilt-b32-mlm")
 
 
-# processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+
 
 def distributed_concat(tensor):
     output_tensors = [tensor.clone() for _ in range(torch.distributed.get_world_size())]
@@ -48,7 +48,6 @@ def validate(args, model, data, device):
 
             # anstype: ent-0 rel-1
             answers = idx_to_one_hot(mans, vocab['num_ent'] + vocab['num_rel']).to(device)  # [bsz,num_ent+num_rel]
-            # 逆关系:rel的前2339个关系 id+3357
             answers[:, vocab['num_ent'] + 3357:] = answers[:, vocab['num_ent']:vocab['num_ent'] + 3357]
 
             # 0103 hop&anstype
@@ -127,12 +126,10 @@ def predict(args, model, data, device):
 
             # anstype: ent-0 rel-1
             answers = idx_to_one_hot(mans, vocab['num_ent'] + vocab['num_rel']).to(device)  # [bsz,num_ent+num_rel]
-            # 逆关系:rel关系 id+3357
             answers[:, vocab['num_ent'] + 3357:] = answers[:, vocab['num_ent']:vocab['num_ent'] + 3357]
 
 
 
-            # 0103 hop&anstype
             # hops = idx_to_one_hot((hops + args.num_steps * anstypes - 1).unsqueeze(1), args.num_steps * 2).to(
             #     device)  # [bsz,num_step*2]
             hops = idx_to_one_hot((hops - 1).unsqueeze(1), args.num_steps).to(device)  # [bsz,num_step]
@@ -151,19 +148,6 @@ def predict(args, model, data, device):
             rel_1 = idx_to_one_hot(rel_seq[:, :1], vocab['num_rel']).to(device)
             rel_2 = idx_to_one_hot(rel_seq[:, 1:], vocab['num_rel']).to(device)
 
-            # #hops_type relation或entity是否预测正确
-            # #hops_step step数量是否预测正确
-            # hops_type=hops.clone()
-            # hops_type[:,2]=hops_type[:,2]+hops_type[:,0]
-            # hops_type[:, 0]=hops_type[:,2]
-            # hops_type[:, 3] = hops_type[:, 3] + hops_type[:, 1]
-            # hops_type[:, 1] = hops_type[:, 3]
-            #
-            # hops_step = hops.clone()
-            # hops_step[:, 1] = hops_step[:, 1] + hops_step[:, 0]
-            # hops_step[:, 0] = hops_step[:, 1]
-            # hops_step[:, 3] = hops_step[:, 3] + hops_step[:, 2]
-            # hops_step[:, 2] = hops_step[:, 3]
 
 
 
@@ -181,34 +165,7 @@ def predict(args, model, data, device):
             }
             """
 
-            # TODO：评测问答 跳数预测 检索
-            # sample=8
-            # print('qtype')
-            # print(qtype[0:sample])
-            # print()
-            #
-            # print('topic_prob')
-            # print(outputs['topic_prob'][0:sample].topk(20))
-            # print(topic[:sample].topk(1))
-            # print()
-            # print('rel_prob1')
-            # print(outputs['rel_prob_seq'][0:sample, 0, :].topk(20))
-            # print(rel_1[:sample].topk(1))
-            # print()
-            # print('ent_prob1')
-            # print(outputs['ent_prob_seq'][0:sample, 0, :].topk(20))
-            # print(ent_1[:sample].topk(1))
-            # print()
-            # print('rel_prob2')
-            # print(outputs['rel_prob_seq'][0:sample, 1, :].topk(20))
-            # print(rel_2[:sample].topk(1))
-            # print()
-            # print('ent_prob2')
-            # print(outputs['ent_prob_seq'][0:sample, 1, :].topk(20))
-            # print(ent_2[:sample].topk(1))
-            # input()
-
-            # Only test on qa task: result with qtype
+           
 
 
             if 'hop_pred' in outputs.keys():
