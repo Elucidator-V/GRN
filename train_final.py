@@ -122,9 +122,7 @@ def train(args):
             mans=(anstypes*vocab['num_ent']+answers).unsqueeze(1)
 
             # anstype: ent-0 rel-1
-            #T要把逆关系也加上作为答案 在这里处理而非model
             answers = idx_to_one_hot(mans, vocab['num_ent']+vocab['num_rel']).to(device)#[bsz,num_ent+num_rel]
-            #逆关系:rel关系 id+3357
             answers[:,vocab['num_ent']+3357:]=answers[:,vocab['num_ent']:vocab['num_ent']+3357]
 
 
@@ -133,7 +131,7 @@ def train(args):
             hops=(hops-1).to(device)
             anstypes=anstypes.to(device)
 
-            # hops=
+   
 
             scenegraphs = scenegraphs.to(device)
             keyconcepts = keyconcepts.to(device)
@@ -152,7 +150,7 @@ def train(args):
                 meters.update(loss=loss.item())
             total_loss.backward()
 
-            #防止梯度消失/爆炸
+
             nn.utils.clip_grad_value_(model.parameters(), 0.5)
             nn.utils.clip_grad_norm_(model.parameters(), 2)
             optimizer.step()
