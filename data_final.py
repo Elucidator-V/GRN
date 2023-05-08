@@ -97,7 +97,6 @@ class Dataset4test(torch.utils.data.Dataset):
         return len(self.questions)
 
 
-# 载入sg前需要padding，让长度对齐。question的padding倒是已经在预处理的时候做好了，但sg的得在dataloader里头做，不然数据缓存太大了
 class DataLoader(torch.utils.data.DataLoader):
     def __init__(self, question_pt, batch_size, test_mode=True,distribute=False):
         # questions,graphs,answers,hops,anstypes,scenegraphs,keyconcepts,kb,qtype,topic, ent_seq, rel_seq
@@ -208,27 +207,5 @@ class DataLoader4test(torch.utils.data.DataLoader):
             collate_fn=collate4test,
             sampler=sampler
         )
-# self.vocab = vocab
 
-if __name__ == '__main__':
-#     vocab_json = '/data/csl/exp/AI_project/SRN/input/vocab.json'
-    val_pt = os.path.join('keydata/KRVQA-christmas', 'val_topic_candidate.pt')
-    pic_dir = 'keydata/KRVQA'
-    # device=-1
-    # print(device)
-    # torch.cuda.set_device(device)
-    # dist.init_process_group(backend='nccl')  # nccl是GPU设备上最快、最推荐的后端
-
-    print("Createal_loader ........")
-    val_loader = DataLoader4test(val_pt, 4,distribute=True)
-
-    for iteration, batch in enumerate(val_loader):
-        # print(dist.get_rank())
-        iteration = iteration + 1
-
-        # questions, anstypes, answers, hops, scenegraphs
-        questions, graphs, answers, hops, anstypes, scenegraphs, keyconcepts, kb, qtype = batch
-        print(questions)
-        print(qtype)
-        input()
 
