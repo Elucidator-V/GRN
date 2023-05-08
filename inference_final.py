@@ -137,7 +137,7 @@ def main():
 
     parser.add_argument('--num_steps', default=2, type=int)
 
-    #原本是定值。平均初始化后改为初始值的一个比例
+    
     parser.add_argument('--min_score', default=0.7, type=float,
                         help='activate an entity when its score exceeds this proportion of value')  # 0.9 may cause convergency issue
 
