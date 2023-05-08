@@ -32,7 +32,6 @@ class VisionReasoningNet(nn.Module):
         self.num_steps = args.num_steps
         self.min_score = args.min_score
 
-        #0106 lossqaratio change
         self.lossqaratio = 100
         print('self.lossqaratio')
         print(self.lossqaratio)
@@ -71,7 +70,6 @@ class VisionReasoningNet(nn.Module):
         self.topic_classifier = nn.Linear(dim_emb, 1)
         self.type_classifier = nn.Linear(dim_emb, 1)
 
-        #0103 hop和anstype分开
         # self.hop_selector = nn.Linear(dim_emb, self.num_steps * 2)
         self.hop_selector = nn.Linear(dim_emb, self.num_steps)
 
@@ -136,34 +134,10 @@ class VisionReasoningNet(nn.Module):
 
 
 
-        #0110 魔改 混合式topic初始化
-        # topic selector + extra score for mentioned
-        # cq_t = self.topic_encoder(text_emb)  # [bsz,dim_word*]=>[bsz, dim_h]
-        # q_logits = torch.sum(cq_t.unsqueeze(1) * q_word,
-        #                      dim=2)  # [bsz, dim_h] element* [bsz, max_q, dim_word](need dim_h=dim_word)=>[bsz,max_q]
-        # q_dist = torch.softmax(q_logits, 1).unsqueeze(1)  # [bsz, 1, max_q]
-        # q_dist = q_dist / (torch.sum(q_dist, dim=2, keepdim=True) + 1e-6)  # [bsz, 1, max_q]
-        # ctx = (q_dist @ q_word).squeeze(1)  # [bsz, 1, max_q]*[bsz,max_q,dim_word]   =>[bsz, dim_h]
-        # ctx = ctx + cq_t
-        # topic_stack=[]
-        # padtoken = -1
-        # kidx_list=[]
-        # for i in range(bsz):
-        #     sgentidx = scenegraphs[i][:, 0].tolist()
-        #     keyidx=keyconcepts[i][keyconcepts[i]!=padtoken].tolist()
-        #     kidx_list.append(torch.LongTensor(list((set(sgentidx)|set(keyidx))-set([padtoken]))).to(device))
-        # for i in range(bsz):
-        #     kidx=kidx_list[i]
-        #     # kidx=keyconcepts[i][keyconcepts[i]!=padtoken]
-        #     key_prob=torch.sigmoid(self.ent_classifier(ctx[i:i + 1] * self.ent_embedding(kidx)).squeeze(1))
-        #     topic_stack.append(torch.index_add(torch.zeros(num_ent).to(device), 0, kidx, key_prob))
-        # topic_pred =  torch.stack(topic_stack, dim=0)  # [bsz,num_ent]
-        # laste = topic_pred + 1 * batch_idx_to_one_hot(keyconcepts, num_ent, padtoken, device)
-        # z = laste.sum(1).detach().unsqueeze(1)
-        # margin = (1/z)-1e-6
+  
+        
 
 
-        #原始方案
 
         padtoken = -1
         laste = batch_idx_to_one_hot(keyconcepts, num_ent, padtoken, device)
@@ -172,7 +146,7 @@ class VisionReasoningNet(nn.Module):
 
 
         
-        # 1225 预先normalize
+
         laste = F.normalize(laste, p=1, dim=1)
         topic_probs = []
         topic_probs.append(laste.clone())
@@ -180,28 +154,18 @@ class VisionReasoningNet(nn.Module):
         # margin=self.min_score
 
 
-        #node的激活下限
-        #原始做法：平均值的self.min_score倍
-        # margin = (1 / z) * self.min_score
-        #定值self.min_score
-        # margin = (torch.ones(bsz).unsqueeze(1)*self.min_score).to(device)
-        #最大值的self.min_score倍
-        #margin = (laste.max(dim=1).values.unsqueeze(1)*self.min_score).to(device)
-
-
-
         reasoning_graph=[]
 
-        ## 拼接sg和kb
+
         for i in range(bsz):
             ag=torch.cat((drop_padding_triple(scenegraphs[i]), drop_padding_triple(kb[i])), 0)
-            #排序
+
             ag = ag[ag[:, 0].sort(0).indices]
             reasoning_graph.append(ag)
 
 
 
-        ##主循环：转移推理
+
         ent_probs = []
         rel_probs = []
         for t in range(self.num_steps):
@@ -256,7 +220,7 @@ class VisionReasoningNet(nn.Module):
             laste = torch.stack(e_stack, dim=0)
 
 
-            # 1225 normalize during transfer
+
             lastr=F.normalize(lastr, p=1, dim=1)
             laste=F.normalize(laste, p=1, dim=1)
 
@@ -266,8 +230,6 @@ class VisionReasoningNet(nn.Module):
         ent_prob = torch.stack(ent_probs, dim=1)  # [bsz, num_hop, num_ent]
         rel_prob = torch.stack(rel_probs, dim=1)  # [bsz, num_hop, num_rel]
 
-
-        # 0103 hop和anstype分离
         # hop_logit = self.hop_selector(text_emb)
         # hop_attn = torch.softmax(hop_logit, dim=1)  # [bsz, num_hop*2]
         # final_prob = torch.cat((torch.cat((ent_prob, torch.zeros(bsz, self.num_steps, self.num_rel).to(device)), dim=2),
@@ -303,7 +265,7 @@ class VisionReasoningNet(nn.Module):
             return {'qa_pred':pred,'hop_pred':hop_logit,'anstype_pred':anstype_logit,'topic_prob':topic_probs[0],
                     'ent_prob_seq':ent_prob,'rel_prob_seq':rel_prob,'margin':margin}
         else:
-            #训练时，各自训练互不干扰
+
 
             # qa loss(v1)
             # weight = answers * 99 + 1
@@ -316,7 +278,7 @@ class VisionReasoningNet(nn.Module):
             loss = {'loss_score':  self.lossqaratio * loss_score }
 
             #hop select loss
-            # 0115 ablation:
+
             if hops!=None:
                 loss_hop=nn.CrossEntropyLoss()(hop_logit, hops)
                 loss['loss_hop']=0.01 * loss_hop
