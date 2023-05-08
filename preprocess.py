@@ -36,9 +36,7 @@ def encode_dataset(vocab, dataset):
 
     for qa in tqdm(dataset):
 
-        # questions.append(
-        #     [vocab['word2id'].get(w, vocab['word2id']['<UNK>']) for w in word_tokenize(qa['question'].lower())])
-        # print(qa)
+
         answers.append(qa['answer'])
 
         #ent-0 rel-1
@@ -52,7 +50,6 @@ def encode_dataset(vocab, dataset):
         graphs.append(qa['image_id'])
         scenegraphs.append(qa['scene_graph'])
 
-        #1226 _topic_candidate
         keyconcepts.append(qa['topic_candidate'])
         kb.append(qa['related_kb'])
         topic.append(qa['topic_ent'])
@@ -82,7 +79,6 @@ def encode_dataset(vocab, dataset):
 
 
 
-    #graphs size问题
 
     questions = np.asarray(questions, dtype=np.int32)
     graphs=np.asarray(graphs, dtype=np.int32)
@@ -99,8 +95,7 @@ def encode_dataset(vocab, dataset):
 
     return questions,graphs,answers,hops,anstypes,scenegraphs,keyconcepts,kb,qtype,topic, ent_seq, rel_seq
 
-# with open('keydata/KRVQA-christmas/datasets_topic_candidate.json') as f:
-# with open('keydata/KRVQA-christmas/datasets_ood.json') as f:
+
 with open('keydata/KRVQA-christmas/datasets_3cases.json') as f:
     datasets = f.read()
 datasets=json.loads(datasets)
